@@ -1,19 +1,20 @@
 #include "../include/lpfResponse.h"
+#include "../include/globals.h"
 #include <cmath>
 
 void computelphamming()
 {
-    int M = lpfParamters::filterLength;
-    for (int n = 0; n < M; n++)
+    
+    for (int n = 0; n < filterlength; n++)
     {
         lpfParamters::wn[n] =
-            0.54f - 0.46f * cos((2 * pi * n) / (M - 1));
+            0.54f - 0.46f * cos((2 * pi * n) / (filterlength - 1));
     }
 }
 
 void computelpfImpuseResponse(callBackUserData &cd)
 {
-    int M = lpfParamters::filterLength;
+    int M = filterlength;
     int centeridx = (M - 1) / 2;
 
     computelphamming();

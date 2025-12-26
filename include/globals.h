@@ -7,7 +7,8 @@
 #define SAMPLE_RATE 44100
 #define FRAMES_PER_BUFFER 128
 #define PROGRAM_DURATION 200
-#define pi 3.14159
+#define pi 3.141592
+#define filterlength 21
 
 extern bool isdisplayactive;
 
@@ -28,10 +29,10 @@ struct amplifyParameters
 
 struct lpfParamters
 {
-    static const int filterLength = 21;
-    static float ha[filterLength];
-    static float hb[filterLength];
-    static float wn[filterLength];
+    
+    static float ha[filterlength];
+    static float hb[filterlength];
+    static float wn[filterlength];
 
     std::atomic<float> cutofffreq;
     std::atomic<float *> h_n;
@@ -40,23 +41,36 @@ struct lpfParamters
 };
 
 struct hpfParameters{
-    static const int hpfilterLength = 21;
-    static float ha[hpfilterLength];
-    static float hb[hpfilterLength];
-    static float wn[hpfilterLength];
+    
+    static float ha[filterlength];
+    static float hb[filterlength];
+    static float wn[filterlength];
 
     std::atomic<float> cutofffreq;
+    
     std::atomic<float *> h_n;
     std::atomic<bool> computehn;
     std::atomic<bool> ishpfActive;
 };
 
+struct bpfParameters{
+    
+    static float ha[filterlength];
+    static float hb[filterlength];
+    static float wn[filterlength];
+
+    std::atomic<float> cutofffreqL;
+    std::atomic<float> cutofffreqH;
+    std::atomic<float*> h_n;
+    std::atomic<bool> computehn;
+    std::atomic<bool> isbpfActive;
+};
 struct callBackUserData
 {
     CoreParameters cp;
     amplifyParameters aP;
     lpfParamters lpf;
     hpfParameters hpf;
+    bpfParameters bpf;
 };
-
 #endif

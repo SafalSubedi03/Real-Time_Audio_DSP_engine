@@ -1,21 +1,22 @@
 #include "../include/hpfResponse.h"
+#include "../include/globals.h"
 #include <cmath>
 
 using namespace std;
 
 void computehphamming()
 {
-    int M = hpfParameters::hpfilterLength;
-    for (int n = 0; n < M; n++)
+    
+    for (int n = 0; n < filterlength; n++)
     {
-        hpfParameters::wn[n] = 0.54f - 0.46f * cos((2 * pi * n) / (M - 1));
+        hpfParameters::wn[n] = 0.54f - 0.46f * cos((2 * pi * n) / (filterlength - 1));
     }
 }
 
 void computehpfimpulse(callBackUserData& cd){
     
-    int M = cd.hpf.hpfilterLength;
-    int centeridx = (M-1) / 2;
+    
+    int centeridx = (filterlength-1) / 2;
     computehphamming();
 
     while(cd.cp.is_running.load()){
@@ -24,7 +25,7 @@ void computehpfimpulse(callBackUserData& cd){
         float* inactive = (cd.hpf.h_n.load() == cd.hpf.ha) ? hpfParameters::hb : hpfParameters::ha;
         float fc = cd.hpf.cutofffreq.load()/ SAMPLE_RATE;
         float wc = 2*3.14159*fc;
-        for(int n = 0;n<M;n++){
+        for(int n = 0;n<filterlength;n++){
             int k = n - centeridx;
             if(k == 0){
                 inactive[n] = 1 - 2 * fc;

@@ -14,11 +14,14 @@ void controlT(callBackUserData &cD)
     {
         cin >> keyPressed;
         switch (keyPressed)
+
         {
+            //amplification
         case 'q': cD.aP.Amplify_HEADPHONE_L += changeBy; break;
         case 'a': cD.aP.Amplify_HEADPHONE_L -= changeBy; break;
         case 'w': cD.aP.Amplify_HEADPHONE_R += changeBy; break;
         case 's': cD.aP.Amplify_HEADPHONE_R -= changeBy; break;
+        
 
         case 'e':
             newfc = cD.lpf.cutofffreq.load() + fchangeby;
@@ -53,6 +56,49 @@ void controlT(callBackUserData &cD)
             }
             cout<<"Cutoff - "<<newfc<<endl;
             break;
+        case 't':
+            newfc = cD.bpf.cutofffreqL.load() + fchangeby;
+            cD.bpf.cutofffreqL.store(newfc);
+            cD.bpf.computehn.store(true);
+            cout<<"BandPass fL - "<<newfc<<endl;
+            break;
+
+        case 'g':
+            newfc = cD.bpf.cutofffreqL.load() - fchangeby;
+            if(newfc > 0){
+                cD.bpf.cutofffreqL.store(newfc);
+                cD.bpf.computehn.store(true);
+            }
+            cout<<"BandPass fL - "<<newfc<<endl;
+            break;
+
+        case 'y':
+            newfc = cD.bpf.cutofffreqH.load() + fchangeby;
+            cD.bpf.cutofffreqH.store(newfc);
+            cD.bpf.computehn.store(true);
+            cout<<"BandPass fL - "<<newfc<<endl;
+            break;
+
+        case 'h':
+            newfc = cD.bpf.cutofffreqH.load() - fchangeby;
+            if(newfc > 0){
+                cD.bpf.cutofffreqH.store(newfc);
+                cD.bpf.computehn.store(true);
+            }
+            cout<<"BandPass fH - "<<newfc<<endl;
+            break;
+
+         case 'b': 
+            cD.bpf.isbpfActive.store(false); 
+            cout<<"BPF OFF"<<endl;
+            break;
+        case '5':
+            cD.lpf.islpfActive.store(false);
+            cD.hpf.ishpfActive.store(false);
+            cD.bpf.isbpfActive.store(true);
+            cout<<"BPF ON"<<endl;  
+            break;
+        
 
         case 'c': 
             cD.lpf.islpfActive.store(false); 

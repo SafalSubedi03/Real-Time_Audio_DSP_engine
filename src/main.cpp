@@ -2,6 +2,7 @@
 #include "../include/lpfResponse.h"
 #include "../include/controlT.h"
 #include "../include/hpfResponse.h"
+#include "../include/bandpass.h"
 
 #include <iostream>
 #include <thread>
@@ -23,18 +24,20 @@ static int audioCallback(const void *inputBuffer,
     int gainL = userData->aP.Amplify_HEADPHONE_L.load();
     bool islpfActive = userData->lpf.islpfActive.load();
     bool ishpfActive = userData->hpf.ishpfActive.load();
-    float *h = ishpfActive ?  userData->hpf.h_n.load(): userData->lpf.h_n.load();
-    int M = ishpfActive ?  hpfParameters::hpfilterLength :lpfParamters::filterLength;
+    bool isbpfActive = userData->bpf.isbpfActive.load();
+    float *h = ishpfActive ?  userData->hpf.h_n.load(): 
+               isbpfActive ?  userData->bpf.h_n.load(): userData->lpf.h_n.load();
+    
         
-        static float delayL[lpfParamters::filterLength] = {};
-        static float delayR[lpfParamters::filterLength] = {};
+        static float delayL[filterlength] = {};
+        static float delayR[filterlength] = {};
 
         for (unsigned long i = 0; i < framesPerBuffer; i++)
         {
             float xL = in ? in[2*i]   : 0.0f;
             float xR = in ? in[2*i+1] : 0.0f;
 
-            for (int k = M - 1; k > 0; k--)
+            for (int k = filterlength - 1; k > 0; k--)
             {
                 delayL[k] = delayL[k - 1];
                 delayR[k] = delayR[k - 1];
@@ -47,7 +50,7 @@ static int audioCallback(const void *inputBuffer,
            
                 yL = 0.0f;
                 yR = 0.0f;
-                for (int k = 0; k < M; k++)
+                for (int k = 0; k < filterlength; k++)
                 {
                     yL += h[k] * delayL[k];
                     yR += h[k] * delayR[k];
@@ -115,8 +118,8 @@ int main()
     userD.cp.processedFrames = 0;
     userD.cp.is_running.store(true);
 
-    userD.aP.Amplify_HEADPHONE_L.store(10);
-    userD.aP.Amplify_HEADPHONE_R.store(10);
+    userD.aP.Amplify_HEADPHONE_L.store(30);
+    userD.aP.Amplify_HEADPHONE_R.store(30);
 
     userD.lpf.cutofffreq.store(1000);
     userD.lpf.computehn.store(true);
@@ -128,10 +131,19 @@ int main()
     userD.hpf.ishpfActive.store(false);
     userD.hpf.h_n.store(hpfParameters::ha);
 
+    userD.bpf.computehn.store(true);
+    userD.bpf.cutofffreqL.store(1000);
+    userD.bpf.cutofffreqH.store(5000);
+    userD.bpf.isbpfActive.store(false);
+    userD.bpf.h_n.store(bpfParameters::ha);
+
+    
+
 
     thread ControlThread(controlT, ref(userD));
     thread computeThread(computelpfImpuseResponse, ref(userD));
     thread hpfThread(computehpfimpulse, ref(userD));
+    thread bpfThread(computebpfimpulse, ref(userD));
 
     PaStream *stream;
     err = Pa_OpenStream(&stream,

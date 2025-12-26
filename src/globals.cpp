@@ -2,10 +2,14 @@
 
 bool isdisplayactive = false;
 
-float lpfParamters::ha[lpfParamters::filterLength] = {};
-float lpfParamters::hb[lpfParamters::filterLength] = {};
-float lpfParamters::wn[lpfParamters::filterLength] = {};
+float lpfParamters::ha[filterlength] = {};
+float lpfParamters::hb[filterlength] = {};
+float lpfParamters::wn[filterlength] = {};
 
-float hpfParameters::ha[hpfParameters::hpfilterLength] = {};
-float hpfParameters::hb[hpfParameters::hpfilterLength] = {};
-float hpfParameters::wn[hpfParameters::hpfilterLength] = {};
+float hpfParameters::ha[filterlength] = {};
+float hpfParameters::hb[filterlength] = {};
+float hpfParameters::wn[filterlength] = {};
+
+float bpfParameters::ha[filterlength] = {};
+float bpfParameters::wn[filterlength] = {};
+float bpfParameters::hb[filterlength] = {};
