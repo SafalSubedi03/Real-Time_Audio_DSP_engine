@@ -1,6 +1,7 @@
 #include "../include/main.h"
 #include "../include/lpfResponse.h"
 #include "../include/controlT.h"
+#include "../include/hpfResponse.h"
 
 #include <iostream>
 #include <thread>
@@ -21,42 +22,45 @@ static int audioCallback(const void *inputBuffer,
     int gainR = userData->aP.Amplify_HEADPHONE_R.load();
     int gainL = userData->aP.Amplify_HEADPHONE_L.load();
     bool islpfActive = userData->lpf.islpfActive.load();
-    float *h = userData->lpf.h_n.load();
-    int M = lpfParamters::filterLength;
+    bool ishpfActive = userData->hpf.ishpfActive.load();
+    float *h = ishpfActive ?  userData->hpf.h_n.load(): userData->lpf.h_n.load();
+    int M = ishpfActive ?  hpfParameters::hpfilterLength :lpfParamters::filterLength;
+        
+        static float delayL[lpfParamters::filterLength] = {};
+        static float delayR[lpfParamters::filterLength] = {};
 
-    static float delayL[lpfParamters::filterLength] = {};
-    static float delayR[lpfParamters::filterLength] = {};
-
-    for (unsigned long i = 0; i < framesPerBuffer; i++)
-    {
-        float xL = in ? in[2*i]   : 0.0f;
-        float xR = in ? in[2*i+1] : 0.0f;
-
-        for (int k = M - 1; k > 0; k--)
+        for (unsigned long i = 0; i < framesPerBuffer; i++)
         {
-            delayL[k] = delayL[k - 1];
-            delayR[k] = delayR[k - 1];
-        }
+            float xL = in ? in[2*i]   : 0.0f;
+            float xR = in ? in[2*i+1] : 0.0f;
 
-        delayL[0] = xL;
-        delayR[0] = xR;
-
-        float yL = xL, yR = xR;
-
-        if (islpfActive)
-        {
-            yL = 0.0f;
-            yR = 0.0f;
-            for (int k = 0; k < M; k++)
+            for (int k = M - 1; k > 0; k--)
             {
-                yL += h[k] * delayL[k];
-                yR += h[k] * delayR[k];
+                delayL[k] = delayL[k - 1];
+                delayR[k] = delayR[k - 1];
             }
-        }
 
-        out[2*i]   = 0.1f * gainL * yL;
-        out[2*i+1] = 0.1f * gainR * yR;
+            delayL[0] = xL;
+            delayR[0] = xR;
+
+            float yL = xL, yR = xR;
+           
+                yL = 0.0f;
+                yR = 0.0f;
+                for (int k = 0; k < M; k++)
+                {
+                    yL += h[k] * delayL[k];
+                    yR += h[k] * delayR[k];
+                }
+            
+            
+     
+                out[2*i]   = 0.1f * gainL * yL;
+                out[2*i+1] = 0.1f * gainR * yR;
+        
     }
+
+
 
     userData->cp.processedFrames += framesPerBuffer;
     if (userData->cp.processedFrames >
@@ -119,8 +123,15 @@ int main()
     userD.lpf.islpfActive.store(true);
     userD.lpf.h_n.store(lpfParamters::ha);
 
+    userD.hpf.cutofffreq.store(3000);
+    userD.hpf.computehn.store(true);
+    userD.hpf.ishpfActive.store(false);
+    userD.hpf.h_n.store(hpfParameters::ha);
+
+
     thread ControlThread(controlT, ref(userD));
     thread computeThread(computelpfImpuseResponse, ref(userD));
+    thread hpfThread(computehpfimpulse, ref(userD));
 
     PaStream *stream;
     err = Pa_OpenStream(&stream,

@@ -39,11 +39,24 @@ struct lpfParamters
     std::atomic<bool> islpfActive;
 };
 
+struct hpfParameters{
+    static const int hpfilterLength = 21;
+    static float ha[hpfilterLength];
+    static float hb[hpfilterLength];
+    static float wn[hpfilterLength];
+
+    std::atomic<float> cutofffreq;
+    std::atomic<float *> h_n;
+    std::atomic<bool> computehn;
+    std::atomic<bool> ishpfActive;
+};
+
 struct callBackUserData
 {
     CoreParameters cp;
     amplifyParameters aP;
     lpfParamters lpf;
+    hpfParameters hpf;
 };
 
 #endif

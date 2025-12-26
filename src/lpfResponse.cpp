@@ -1,7 +1,7 @@
 #include "../include/lpfResponse.h"
 #include <cmath>
 
-void computehamming()
+void computelphamming()
 {
     int M = lpfParamters::filterLength;
     for (int n = 0; n < M; n++)
@@ -16,7 +16,7 @@ void computelpfImpuseResponse(callBackUserData &cd)
     int M = lpfParamters::filterLength;
     int centeridx = (M - 1) / 2;
 
-    computehamming();
+    computelphamming();
 
     while (cd.cp.is_running.load())
     {

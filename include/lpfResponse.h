@@ -3,7 +3,7 @@
 
 #include "globals.h"
 
-void computehamming();
+void computelphamming();
 void computelpfImpuseResponse(callBackUserData &cd);
 
 #endif
