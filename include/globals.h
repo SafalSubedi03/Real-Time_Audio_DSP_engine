@@ -1,35 +1,28 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
-
 #include <atomic>
 #include <cstdint>
-
 #define SAMPLE_RATE 44100
 #define FRAMES_PER_BUFFER 128
 #define PROGRAM_DURATION 200
 #define pi 3.141592
 #define filterlength 51
+#define limitThreshold 0.8
+#define compressionThreshold 0.5
 
 extern bool isdisplayactive;
-
-struct CoreParameters
-{
+struct CoreParameters{
     unsigned int short inputChannelCount;
     unsigned int short outputChannelCount;
     uint64_t processedFrames;
     uint64_t targetFrames = (PROGRAM_DURATION * SAMPLE_RATE);
     std::atomic<bool> is_running;
 };
-
-struct amplifyParameters
-{
-    std::atomic<int> Amplify_HEADPHONE_R;
-    std::atomic<int> Amplify_HEADPHONE_L;
+struct amplifyParameters{
+    std::atomic<float> Amplify_HEADPHONE_R;
+    std::atomic<float>Amplify_HEADPHONE_L;
 };
-
-struct lpfParamters
-{
-    
+struct lpfParamters{
     static float ha[filterlength];
     static float hb[filterlength];
     static float wn[filterlength];
@@ -41,7 +34,6 @@ struct lpfParamters
 };
 
 struct hpfParameters{
-    
     static float ha[filterlength];
     static float hb[filterlength];
     static float wn[filterlength];
@@ -52,9 +44,7 @@ struct hpfParameters{
     std::atomic<bool> computehn;
     std::atomic<bool> ishpfActive;
 };
-
 struct bpfParameters{
-    
     static float ha[filterlength];
     static float hb[filterlength];
     static float wn[filterlength];
@@ -65,12 +55,31 @@ struct bpfParameters{
     std::atomic<bool> computehn;
     std::atomic<bool> isbpfActive;
 };
-struct callBackUserData
-{
+struct limiter{
+    static  float LT;
+    static  float CT;
+
+    std::atomic<float> compressionfactor;
+    std::atomic<float> tat;
+    std::atomic<float> trt;
+
+    
+    std::atomic<float> xpeakL;
+    std::atomic<float> xpeakR;
+    std::atomic<bool> islimiterActive;
+
+    std::atomic<float> targetGainL;
+    std::atomic<float> targetGainR;
+
+    std::atomic<float> attackCoeff;
+    std::atomic<float> releaseCoeff;
+};
+struct callBackUserData{
     CoreParameters cp;
     amplifyParameters aP;
     lpfParamters lpf;
     hpfParameters hpf;
     bpfParameters bpf;
+    limiter lm;
 };
 #endif

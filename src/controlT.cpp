@@ -6,9 +6,15 @@ using namespace std;
 void controlT(callBackUserData &cD)
 {
     char keyPressed = '*';
-    int changeBy = 10;
+    float changeBy = 10.0f;
     int fchangeby = 100;
-    float newfc = 0;
+    float newfc = 0.0f;
+    float newgL = 0.0f;
+    float newgR = 0.0f;
+    float newtat = 0.0f;
+    float newtrt = 0.0f;
+    float newcompressionRatio = 0.0f;
+    float RchangeBy = 0.5;
 
     while (cD.cp.is_running.load())
     {
@@ -17,10 +23,27 @@ void controlT(callBackUserData &cD)
 
         {
             //amplification
-        case 'q': cD.aP.Amplify_HEADPHONE_L += changeBy; break;
-        case 'a': cD.aP.Amplify_HEADPHONE_L -= changeBy; break;
-        case 'w': cD.aP.Amplify_HEADPHONE_R += changeBy; break;
-        case 's': cD.aP.Amplify_HEADPHONE_R -= changeBy; break;
+        case 'q':   newgL = cD.aP.Amplify_HEADPHONE_L.load() + changeBy;
+                    
+                        cD.aP.Amplify_HEADPHONE_L.store(newgL);
+                    cout<<"GL:- "<<cD.aP.Amplify_HEADPHONE_L.load()<<endl;
+                    break;
+                   
+        case 'a': newgL = cD.aP.Amplify_HEADPHONE_L.load() - changeBy;
+                    if(newgL > 0)
+                        cD.aP.Amplify_HEADPHONE_L.store(newgL);
+                    cout<<"GL:- "<<cD.aP.Amplify_HEADPHONE_L.load()<<endl;
+                    break;
+        case 'w': newgR = cD.aP.Amplify_HEADPHONE_R.load() + changeBy;
+                    
+                        cD.aP.Amplify_HEADPHONE_R.store(newgR);
+                    cout<<"GR:- "<<cD.aP.Amplify_HEADPHONE_R.load()<<endl;
+                    break;
+        case 's':  newgR = cD.aP.Amplify_HEADPHONE_R.load() - changeBy;
+                    if(newgR > 0)
+                        cD.aP.Amplify_HEADPHONE_R.store(newgR);
+                    cout<<"GR:- "<<cD.aP.Amplify_HEADPHONE_R.load()<<endl;
+                    break;
         
 
         case 'e':
@@ -119,6 +142,27 @@ void controlT(callBackUserData &cD)
             cout<<"HPF ON"<<endl;   
             
             break;
+            
+        //Limiter Controls
+        case 'l':
+            //implementing toggle control
+            cD.lm.islimiterActive.store(!cD.lm.islimiterActive.load());
+            cout<<"Limiter active:- "<<cD.lm.islimiterActive.load()<<endl;
+            break;
+
+        case 'k':
+            newcompressionRatio = cD.lm.compressionfactor.load() + RchangeBy;
+            cD.lm.compressionfactor.store(newcompressionRatio);
+            cout<<"Compression Ratio R:- "<<cD.lm.compressionfactor.load()<<endl;
+            break; 
+        
+        case ';':
+            newcompressionRatio = cD.lm.compressionfactor.load() - RchangeBy;
+            if(newcompressionRatio > 0)
+                cD.lm.compressionfactor.store(newcompressionRatio);
+            cout<<"Compression Ratio R:- "<<cD.lm.compressionfactor.load()<<endl;
+            break;
+            
         default: 
         break;
         }
