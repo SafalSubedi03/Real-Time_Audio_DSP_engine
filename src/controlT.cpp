@@ -76,7 +76,7 @@ void controlT(callBackUserData &cD)
             newfc = cD.bpf.cutofffreqH.load() + fchangeby;
             cD.bpf.cutofffreqH.store(newfc);
             cD.bpf.computehn.store(true);
-            cout<<"BandPass fL - "<<newfc<<endl;
+            cout<<"BandPass fH - "<<newfc<<endl;
             break;
 
         case 'h':

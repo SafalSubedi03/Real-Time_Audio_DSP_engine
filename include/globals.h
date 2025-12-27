@@ -8,7 +8,7 @@
 #define FRAMES_PER_BUFFER 128
 #define PROGRAM_DURATION 200
 #define pi 3.141592
-#define filterlength 21
+#define filterlength 51
 
 extern bool isdisplayactive;
 

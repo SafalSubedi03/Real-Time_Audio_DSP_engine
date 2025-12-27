@@ -58,8 +58,8 @@ static int audioCallback(const void *inputBuffer,
             
             
      
-                out[2*i]   = 0.1f * gainL * yL;
-                out[2*i+1] = 0.1f * gainR * yR;
+                out[2*i]   = 0.5f * gainL * yL;
+                out[2*i+1] = 0.5f * gainR * yR;
         
     }
 
