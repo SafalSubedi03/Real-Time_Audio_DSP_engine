@@ -94,9 +94,7 @@ static int audioCallback(const void *inputBuffer,
                     if(targetGR < gainR)
                         gainR += (targetGR - gainR) * attackCoeff;
                     else 
-                        gainR += (targetGR - gainR) * releaseCoeff;
-
-                    
+                        gainR += (targetGR - gainR) * releaseCoeff;               
 
                     
                     
