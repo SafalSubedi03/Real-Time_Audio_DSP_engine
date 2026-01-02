@@ -9,6 +9,8 @@
 #define filterlength 51
 #define limitThreshold 0.8
 #define compressionThreshold 0.5
+#define headsize 0.23
+#define ITDmaxDelay 50
 
 extern bool isdisplayactive;
 struct CoreParameters{
@@ -37,9 +39,7 @@ struct hpfParameters{
     static float ha[filterlength];
     static float hb[filterlength];
     static float wn[filterlength];
-
-    std::atomic<float> cutofffreq;
-    
+    std::atomic<float> cutofffreq;    
     std::atomic<float *> h_n;
     std::atomic<bool> computehn;
     std::atomic<bool> ishpfActive;
@@ -74,6 +74,16 @@ struct limiter{
     std::atomic<float> attackCoeff;
     std::atomic<float> releaseCoeff;
 };
+
+struct spatialLocalization{  
+
+    std::atomic<int>delayinFrames;
+    
+   
+    std::atomic<float> azimuthalAngle;
+    std::atomic<bool>isSpatialActive;
+
+};
 struct callBackUserData{
     CoreParameters cp;
     amplifyParameters aP;
@@ -81,5 +91,6 @@ struct callBackUserData{
     hpfParameters hpf;
     bpfParameters bpf;
     limiter lm;
+    spatialLocalization sl;
 };
 #endif

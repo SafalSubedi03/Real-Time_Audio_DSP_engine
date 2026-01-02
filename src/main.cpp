@@ -4,6 +4,7 @@
 #include "../include/hpfResponse.h"
 #include "../include/bandpass.h"
 #include "../include/limiter.h"
+#include "../include/spatialeffects.h"
 
 #include <iostream>
 #include <thread>
@@ -21,94 +22,122 @@ static int audioCallback(const void *inputBuffer,
     float *out = (float *)outputBuffer;
     callBackUserData *userData = (callBackUserData *)u;
 
-    
-
     bool islpfActive = userData->lpf.islpfActive.load();
     bool ishpfActive = userData->hpf.ishpfActive.load();
     bool isbpfActive = userData->bpf.isbpfActive.load();
-    float *h = ishpfActive ?  userData->hpf.h_n.load(): 
-               isbpfActive ?  userData->bpf.h_n.load(): userData->lpf.h_n.load();
+    float *h = ishpfActive ? userData->hpf.h_n.load() : isbpfActive ? userData->bpf.h_n.load()
+                                                                    : userData->lpf.h_n.load();
+
+    // fir filter delay buffer
+    static float delayL[filterlength] = {};
+    static float delayR[filterlength] = {};
+    float targetGL = 0.0f;
+    float targetGR = 0.0f;
+
+    // spatical localization delay buffer
+    static float SdelayL[ITDmaxDelay] = {};
+    static float SdelayR[ITDmaxDelay] = {};
+
+    float xLpeak = 0.0f;
+    float xRpeak = 0.0f;
+    int delaySample = userData->sl.delayinFrames.load();
     
-        
-        static float delayL[filterlength] = {};
-        static float delayR[filterlength] = {};
-        float targetGL = 0.0f;
-        float targetGR = 0.0f;
+    bool delayinRight = userData->sl.azimuthalAngle.load() < 0 ? true : false;
 
-        float xLpeak = 0.0f;
-        float xRpeak = 0.0f;
+    for (unsigned long i = 0; i < framesPerBuffer; i++)
+    {
 
-        for (unsigned long i = 0; i < framesPerBuffer; i++)
+        // spatical loacalization
+        if (userData->sl.isSpatialActive.load())
+        {
+            if (delayinRight)
+            {
+                for (int k = ITDmaxDelay - 1; k > 0; k--)
+                {
+                    SdelayR[k] = SdelayR[k - 1];
+                }
+                SdelayR[0] = in[2 * i + 1];
+                SdelayL[delaySample] = in[2*i];
+            }
+            else
+            {   
+                for (int k = ITDmaxDelay - 1; k > 0; k--)
+                {
+                    SdelayL[k] = SdelayL[k - 1];
+                }
+                SdelayL[0] = in[2 * i];
+                SdelayR[delaySample] = in[2 * i + 1];
+            }
+        }
+        else
+        {
+            SdelayR[delaySample] = in[2 * i + 1];
+            SdelayL[delaySample] = in[2 * i];
+        }
+
+        // limiter Parameters
+        float gainR = userData->aP.Amplify_HEADPHONE_R.load();
+        float gainL = userData->aP.Amplify_HEADPHONE_L.load();
+
+        xLpeak = SdelayL[delaySample] > xLpeak ? SdelayL[delaySample] : xLpeak;
+        xRpeak = SdelayR[delaySample] > xRpeak ? SdelayR[delaySample] : xRpeak;
+
+        float attackCoeff = 0.0f;
+        float releaseCoeff = 0.0f;
+
+        // delay buffer
+        float xL = in ? SdelayL[delaySample] : 0.0f;
+        float xR = in ? SdelayR[delaySample] : 0.0f;
+
+        if (userData->lm.islimiterActive.load())
         {
 
-            float gainR = userData->aP.Amplify_HEADPHONE_R.load();
-            float gainL = userData->aP.Amplify_HEADPHONE_L.load();
+            userData->lm.xpeakL.store(xLpeak);
+            userData->lm.xpeakR.store(xRpeak);
 
-            xLpeak = in[2*i] > xLpeak ? in[2*i] : xLpeak;
-            xRpeak = in[2*i+1] > xRpeak ? in[2*i+1] : xRpeak;
+            attackCoeff = userData->lm.attackCoeff.load();
+            releaseCoeff = userData->lm.releaseCoeff.load();
+            // sepearting the generate gain to provide enough time for computation
+        }
 
-            float attackCoeff = 0.0f;
-            float releaseCoeff = 0.0f;
+        for (int k = filterlength - 1; k > 0; k--)
+        {
+            delayL[k] = delayL[k - 1];
+            delayR[k] = delayR[k - 1];
+        }
 
-            float xL = in ? in[2*i]   : 0.0f;
-            float xR = in ? in[2*i+1] : 0.0f;
+        delayL[0] = xL;
+        delayR[0] = xR;
 
-            if(userData->lm.islimiterActive.load()){
-                    
-                    userData->lm.xpeakL.store(xLpeak);
-                    userData->lm.xpeakR.store(xRpeak);
+        float yL = xL, yR = xR;
 
-                    attackCoeff = userData->lm.attackCoeff.load();
-                    releaseCoeff= userData->lm.releaseCoeff.load();
-                    //sepearting the generate gain to provide enough time for computation 
-                }
+        yL = 0.0f;
+        yR = 0.0f;
+        for (int k = 0; k < filterlength; k++)
+        {
+            yL += h[k] * delayL[k];
+            yR += h[k] * delayR[k];
+        }
 
-            for (int k = filterlength - 1; k > 0; k--)
-            {
-                delayL[k] = delayL[k - 1];
-                delayR[k] = delayR[k - 1];
-            }
+        if (userData->lm.islimiterActive.load())
+        {
+            targetGL = userData->lm.targetGainL.load();
+            targetGR = userData->lm.targetGainR.load();
 
-            delayL[0] = xL;
-            delayR[0] = xR;
+            if (targetGL < gainL)
+                gainL += (targetGL - gainL) * attackCoeff;
+            else
+                gainL += (targetGL - gainL) * releaseCoeff;
 
-            float yL = xL, yR = xR;
-           
-                yL = 0.0f;
-                yR = 0.0f;
-                for (int k = 0; k < filterlength; k++)
-                {
-                    yL += h[k] * delayL[k];
-                    yR += h[k] * delayR[k];
-                }
-           
-                if(userData->lm.islimiterActive.load()){
-                    targetGL = userData->lm.targetGainL.load();
-                    targetGR = userData->lm.targetGainR.load(); 
-                    
-                    if(targetGL < gainL)
-                        gainL += (targetGL - gainL) * attackCoeff;
-                    else 
-                        gainL += (targetGL - gainL) * releaseCoeff;
+            if (targetGR < gainR)
+                gainR += (targetGR - gainR) * attackCoeff;
+            else
+                gainR += (targetGR - gainR) * releaseCoeff;
+        }
 
-                    if(targetGR < gainR)
-                        gainR += (targetGR - gainR) * attackCoeff;
-                    else 
-                        gainR += (targetGR - gainR) * releaseCoeff;               
-
-                    
-                    
-                }
-            
-            
-     
-                out[2*i]   = gainL * yL;
-                out[2*i+1] = gainR * yR;
-            
-        
+        out[2 * i] = gainL * yL;
+        out[2 * i + 1] = gainR * yR;
     }
-
-
 
     userData->cp.processedFrames += framesPerBuffer;
     if (userData->cp.processedFrames >
@@ -183,16 +212,19 @@ int main()
     userD.bpf.h_n.store(bpfParameters::ha);
 
     userD.lm.tat.store(0.02e-3);
-    userD.lm.trt.store(1e-3);
-    userD.lm.compressionfactor.store(2); 
-    userD.lm.islimiterActive.store(false);  
+    userD.lm.trt.store(0.1e-3);
+    userD.lm.compressionfactor.store(2);
+    userD.lm.islimiterActive.store(false);
 
+    userD.sl.azimuthalAngle.store(30);
+    userD.sl.isSpatialActive.store(true);
 
     thread ControlThread(controlT, ref(userD));
     thread computeThread(computelpfImpuseResponse, ref(userD));
     thread hpfThread(computehpfimpulse, ref(userD));
     thread bpfThread(computebpfimpulse, ref(userD));
     thread lmThread(computeFL, ref(userD));
+    thread spatialLocatThread(computeITD, ref(userD));
 
     PaStream *stream;
     err = Pa_OpenStream(&stream,
@@ -206,7 +238,8 @@ int main()
     checkError(err);
 
     Pa_StartStream(stream);
-    while (Pa_IsStreamActive(stream)) Pa_Sleep(100);
+    while (Pa_IsStreamActive(stream))
+        Pa_Sleep(100);
 
     Pa_CloseStream(stream);
     Pa_Terminate();
