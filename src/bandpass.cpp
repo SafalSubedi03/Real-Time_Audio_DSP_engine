@@ -34,8 +34,7 @@ void computebpfimpulse(callBackUserData& cd){
         //give some time to the low impulse thread to calculate the impulse response;
         _sleep(100);
         cd.lpf.computehn.store(false);
-        inactive = cd.lpf.h_n.load();
-        
+        inactive = cd.lpf.h_n.load();       
 
         for(int n = 0; n < filterlength; n ++){
             int k = n-centeridx;
