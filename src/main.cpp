@@ -5,6 +5,7 @@
 #include "../include/bandpass.h"
 #include "../include/limiter.h"
 #include "../include/spatialeffects.h"
+#include "../include/displayAvailable.h"
 
 #include <iostream>
 #include <thread>
@@ -41,17 +42,26 @@ static int audioCallback(const void *inputBuffer,
     float xLpeak = 0.0f;
     float xRpeak = 0.0f;
     int delaySample = userData->sl.delayinFrames.load();
+    float farEargainL = 1;
+    float farEargainR = 1;
     
     bool delayinRight = userData->sl.azimuthalAngle.load() < 0 ? true : false;
 
     for (unsigned long i = 0; i < framesPerBuffer; i++)
     {
+        // if (userData->sl.azimuthalAngle.load() == 0)
+        //     userData->sl.isSpatialActive.store(false);
+        // else 
+        //     userData->sl.isSpatialActive.store(true);
 
         // spatical loacalization
         if (userData->sl.isSpatialActive.load())
         {
+               
+            
             if (delayinRight)
             {
+                farEargainR = userData->sl.FarEarGain.load();
                 for (int k = ITDmaxDelay - 1; k > 0; k--)
                 {
                     SdelayR[k] = SdelayR[k - 1];
@@ -61,6 +71,7 @@ static int audioCallback(const void *inputBuffer,
             }
             else
             {   
+                farEargainL = userData->sl.FarEarGain.load();
                 for (int k = ITDmaxDelay - 1; k > 0; k--)
                 {
                     SdelayL[k] = SdelayL[k - 1];
@@ -135,8 +146,8 @@ static int audioCallback(const void *inputBuffer,
                 gainR += (targetGR - gainR) * releaseCoeff;
         }
 
-        out[2 * i] = gainL * yL;
-        out[2 * i + 1] = gainR * yR;
+        out[2 * i] = gainL * yL * farEargainL;
+        out[2 * i + 1] = gainR * yR * farEargainR;
     }
 
     userData->cp.processedFrames += framesPerBuffer;
@@ -159,6 +170,8 @@ static void checkError(PaError err)
     }
 }
 
+
+
 int main()
 {
     cout << "=== PortAudio Test ===" << endl;
@@ -166,8 +179,16 @@ int main()
     PaError err = Pa_Initialize();
     checkError(err);
 
-    int outputSpeaker = Pa_GetDefaultOutputDevice();
-    int inputMic = Pa_GetDefaultInputDevice();
+    if(isdisplayactive){
+        printAvailableDevices();
+        return 0;
+    }
+
+
+
+
+    int outputSpeaker = 4;
+    int inputMic = 0;
 
     PaStreamParameters inputParameter;
     PaStreamParameters outputParameter;
@@ -219,6 +240,7 @@ int main()
     userD.sl.azimuthalAngle.store(30);
     userD.sl.isSpatialActive.store(true);
 
+
     thread ControlThread(controlT, ref(userD));
     thread computeThread(computelpfImpuseResponse, ref(userD));
     thread hpfThread(computehpfimpulse, ref(userD));
@@ -245,3 +267,11 @@ int main()
     Pa_Terminate();
     return 0;
 }
+
+
+/*
+set bandpass without limiter and with spatial control
+qqqqqqqqqqwwwwwwwwwwwwcvb5ggggghhhhhhhhhhhhhhhhhhhhhhhhhhgg
+
+
+*/

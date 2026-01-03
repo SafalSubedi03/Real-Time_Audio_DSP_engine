@@ -171,26 +171,42 @@ void controlT(callBackUserData &cD)
             cout << "Compression Ratio R:- " << cD.lm.compressionfactor.load() << endl;
             break;
 
+            // Spatial Localization
+
         case ',':
             cD.sl.isSpatialActive.store(!cD.sl.isSpatialActive.load());
             cout << "Direction Control: " << cD.sl.isSpatialActive.load() << endl;
             break;
 
         case '>':
-            currAngle = cD.sl.azimuthalAngle.load();
-            newAngle = currAngle + AzimuthalAngleChangeBy;
-            if (newAngle <= 90)
-                cD.sl.azimuthalAngle.store(newAngle);
-                cout<<"Angle"<<cD.sl.azimuthalAngle.load()<<endl;
+            
+            
+                currAngle = cD.sl.azimuthalAngle.load();
+                newAngle = currAngle + AzimuthalAngleChangeBy;
+                if (newAngle <= 90)
+                    cD.sl.azimuthalAngle.store(newAngle);
+                cout << "Angle" << cD.sl.azimuthalAngle.load() << endl;
+            
             break;
 
         case '<':
-            currAngle = cD.sl.azimuthalAngle.load();
-            newAngle = currAngle - AzimuthalAngleChangeBy;
-            if (newAngle >= -90)
-                cD.sl.azimuthalAngle.store(newAngle);
-                cout<<"Angle"<<cD.sl.azimuthalAngle.load()<<endl;
+           
+            
+                currAngle = cD.sl.azimuthalAngle.load();
+                newAngle = currAngle - AzimuthalAngleChangeBy;
+                if (newAngle >= -90)
+                    cD.sl.azimuthalAngle.store(newAngle);
+                cout << "Angle" << cD.sl.azimuthalAngle.load() << endl;
+            
             break;
+        case '.':
+            if (cD.sl.isSpatialActive.load())
+            {
+                cD.sl.autoRotate.store(!cD.sl.autoRotate.load());
+                cout << "Auto Rotate - " << cD.sl.autoRotate.load() << endl;
+            }
+            break;
+  
 
         default:
             break;
